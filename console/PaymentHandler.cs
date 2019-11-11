@@ -8,12 +8,15 @@ namespace console
     {
         private readonly IMailService mailService;
         private readonly IProductCatalog productCatalog;
+        private readonly IMembershipService membershipService;
 
         public PaymentHandler(IMailService mailService,
-                              IProductCatalog productCatalog)
+                              IProductCatalog productCatalog,
+                              IMembershipService membershipService)
         {
             this.mailService = mailService;
             this.productCatalog = productCatalog;
+            this.membershipService = membershipService;
         }
         public void Process(Payment payment)
         {
@@ -26,7 +29,14 @@ namespace console
             {
                 mailService.GeneratePackingSlip(payment, Departments.Royalty);
             }
-            
+            if(tags.Contains(PaymentTags.Membership))
+            {
+                membershipService.ActivateMembership(payment);
+            }
+            if(tags.Contains(PaymentTags.MembershipUpgrade))
+            {
+                membershipService.UpgradeMembership(payment);
+            }
         }
     }
 }
