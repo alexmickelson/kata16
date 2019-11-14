@@ -38,16 +38,6 @@ namespace console
             generateCommision(payment, tags);
         }
 
-        private void generateCommision(Payment payment, IEnumerable<PaymentTags> tags)
-        {
-            if (tags.Any(t => t == PaymentTags.Book || t == PaymentTags.PhysicalProduct))
-            {
-                commisionService.GenerateCommision(
-                    payment,
-                    productCatalog.GetAgentId(payment.ProductId));
-            }
-        }
-
         private void sendSlipToRoyalty(IEnumerable<PaymentTags> tags, IPackingSlipBuilder packingSlip)
         {
             if (tags.Contains(PaymentTags.Book))
@@ -85,6 +75,16 @@ namespace console
             if (tags.Contains(PaymentTags.NewMembership))
             {
                 membershipService.ActivateMembership(payment);
+            }
+        }
+
+        private void generateCommision(Payment payment, IEnumerable<PaymentTags> tags)
+        {
+            if (tags.Any(t => t == PaymentTags.Book || t == PaymentTags.PhysicalProduct))
+            {
+                commisionService.GenerateCommision(
+                    payment,
+                    productCatalog.GetAgentId(payment.ProductId));
             }
         }
     }

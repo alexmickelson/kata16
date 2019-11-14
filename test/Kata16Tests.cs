@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace test
 {
-    public class Tests
+    public class Kata16Tests
     {
         private Mock<IPackingSlipBuilder> packingSlipBuilderMoq;
         private Mock<IProductCatalog> productCatalogMoq;
