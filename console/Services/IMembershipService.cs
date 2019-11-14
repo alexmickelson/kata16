@@ -6,5 +6,6 @@ namespace console.Services
     {
         public void ActivateMembership(Payment payment);
         public void UpgradeMembership(Payment payment);
+        public void NotifyUserOfMembershipModification(Payment payment);
     }
 }

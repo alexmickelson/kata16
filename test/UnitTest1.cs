@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using console;
+using console.Enums;
 using console.Models;
 using console.Services;
 using Moq;
@@ -9,21 +10,26 @@ namespace test
 {
     public class Tests
     {
-        private Mock<IMailService> mailMoq;
+        private Mock<IPackingSlipBuilder> packingSlipBuilderMoq;
         private Mock<IProductCatalog> productCatalogMoq;
         private Mock<IMembershipService> membershipMoq;
+        private Mock<ICommisionService> commissionMoq;
         private PaymentHandler paymentHandler;
         private string UserAccount;
 
         [SetUp]
         public void Setup()
         {
-            mailMoq = new Mock<IMailService>();
+            // mailMoq = new Mock<IMailService>();
+            packingSlipBuilderMoq = new Mock<IPackingSlipBuilder>();
             productCatalogMoq = new Mock<IProductCatalog>();
             membershipMoq = new Mock<IMembershipService>();
-            paymentHandler = new PaymentHandler(mailMoq.Object,
-                                                productCatalogMoq.Object,
-                                                membershipMoq.Object);
+            commissionMoq = new Mock<ICommisionService>();
+            paymentHandler = new PaymentHandler(
+                                () => { return packingSlipBuilderMoq.Object; },
+                                productCatalogMoq.Object,
+                                membershipMoq.Object,
+                                commissionMoq.Object);
             UserAccount = "me";
         }
 
@@ -37,12 +43,12 @@ namespace test
                 Amount=20.01M
             };
             productCatalogMoq.Setup(pc => pc.GetTags(physicalProductId))
-                             .Returns(new List<string>(){PaymentTags.PhysicalProduct});
-            mailMoq.Setup(m => m.GeneratePackingSlip(payment, Departments.Shipping)).Verifiable();
+                             .Returns(new List<PaymentTags>(){PaymentTags.PhysicalProduct});
+            packingSlipBuilderMoq.Setup(m => m.SendPackingSlipTo(Departments.Warehouse)).Verifiable();
 
             paymentHandler.Process(payment);
 
-            Mock.Verify(mailMoq);
+            Mock.Verify(packingSlipBuilderMoq);
         }
 
         [Test]
@@ -56,17 +62,17 @@ namespace test
                 Amount=20.01M
             };
             productCatalogMoq.Setup(pc => pc.GetTags(bookProductId))
-                             .Returns(new List<string>()
+                             .Returns(new List<PaymentTags>()
                              {
                                 PaymentTags.PhysicalProduct,
                                 PaymentTags.Book
                              });
-            mailMoq.Setup(m => m.GeneratePackingSlip(payment, Departments.Shipping)).Verifiable();
-            mailMoq.Setup(m => m.GeneratePackingSlip(payment, Departments.Royalty)).Verifiable();
+            packingSlipBuilderMoq.Setup(m => m.SendPackingSlipTo(Departments.Warehouse)).Verifiable();
+            packingSlipBuilderMoq.Setup(m => m.SendPackingSlipTo(Departments.Royalty)).Verifiable();
 
             paymentHandler.Process(payment);
 
-            Mock.Verify(mailMoq);
+            Mock.Verify(packingSlipBuilderMoq);
         }
 
         [Test]
@@ -80,9 +86,9 @@ namespace test
                 Amount=20.01M
             };
             productCatalogMoq.Setup(pc => pc.GetTags(membershipProductId))
-                             .Returns(new List<string>()
+                             .Returns(new List<PaymentTags>()
                              {
-                                PaymentTags.Membership
+                                PaymentTags.NewMembership
                              });
             membershipMoq.Setup(ms => ms.ActivateMembership(payment))
                                 .Verifiable();
@@ -103,7 +109,7 @@ namespace test
                 Amount=20.01M
             };
             productCatalogMoq.Setup(pc => pc.GetTags(membershipUpgradeProductId))
-                             .Returns(new List<string>()
+                             .Returns(new List<PaymentTags>()
                              {
                                 PaymentTags.MembershipUpgrade
                              });
@@ -116,7 +122,49 @@ namespace test
         }
 
         [Test]
-        public void AddFirstAidVideoWhenLearningToSkii()
+        public void NotifyConsumerOnMembershipPurchase()
+        {
+            var MemberhipPurchaseId = 4;
+            var payment = new Payment()
+            {
+                Id=1,
+                UserAccount=UserAccount,
+                ProductId=MemberhipPurchaseId,
+                Amount=20.01M
+            };
+            productCatalogMoq.Setup(pc => pc.GetTags(MemberhipPurchaseId))
+                             .Returns(new [] { PaymentTags.NewMembership });
+            membershipMoq.Setup(m => m.NotifyUserOfMembershipModification(payment))
+                         .Verifiable();
+
+            paymentHandler.Process(payment);
+
+            Mock.Verify(membershipMoq);
+        }
+
+        [Test]
+        public void NotifyConsumerOnMembershipUpgrade()
+        {
+            var MemberhipUpgradeId = 4;
+            var payment = new Payment()
+            {
+                Id=1,
+                UserAccount=UserAccount,
+                ProductId=MemberhipUpgradeId,
+                Amount=20.01M
+            };
+            productCatalogMoq.Setup(pc => pc.GetTags(MemberhipUpgradeId))
+                             .Returns(new [] { PaymentTags.MembershipUpgrade });
+            membershipMoq.Setup(m => m.NotifyUserOfMembershipModification(payment))
+                         .Verifiable();
+
+            paymentHandler.Process(payment);
+
+            Mock.Verify(membershipMoq);
+        }
+
+        [Test]
+        public void AddFirstAidVideoWhenLearningToSki()
         {
             var learingToSkiVideo = 4;
             var firstAidVideoId = 4;
@@ -128,16 +176,68 @@ namespace test
                 Amount=20.01M
             };
             productCatalogMoq.Setup(pc => pc.GetTags(learingToSkiVideo))
-                             .Returns(new List<string>()
-                             {
-                                PaymentTags.AddFirstAidVideo
-                             });
-            mailMoq.Setup(ms => ms.AddItemToOrder(payment, firstAidVideoId))
-                                .Verifiable();
+                             .Returns(new [] { PaymentTags.AddFirstAidVideo });
+            productCatalogMoq.Setup(pc => pc.GetProductId(PaymentHandler.FirstAidVideo))
+                             .Returns(firstAidVideoId);
+            packingSlipBuilderMoq
+                .Setup(m => m.AddItemToOrder(firstAidVideoId))
+                .Verifiable();
 
             paymentHandler.Process(payment);
 
-            Mock.Verify(mailMoq);
+            Mock.Verify(packingSlipBuilderMoq);
+        }
+
+        [Test]
+        public void GenerateCommisionForBook()
+        {
+            int bookProductId = 6;
+            int agentId = 10;
+            var payment = new Payment()
+            {
+                Id=1,
+                UserAccount=UserAccount,
+                ProductId=bookProductId,
+                Amount=20.01M
+            };
+            productCatalogMoq.Setup(pc => pc.GetTags(bookProductId))
+                             .Returns( new []{ 
+                                 PaymentTags.Commission, PaymentTags.Book
+                                 });
+            productCatalogMoq.Setup(s => s.GetAgentId(bookProductId))
+                             .Returns(agentId);
+            commissionMoq.Setup(c => c.GenerateCommision(payment, agentId))
+                         .Verifiable();
+
+            paymentHandler.Process(payment);
+
+            Mock.Verify(commissionMoq);
+        }
+
+        [Test]
+        public void GenerateCommisionForPhysicalProduct()
+        {
+            int physicalProductId = 6;
+            int agentId = 10;
+            var payment = new Payment()
+            {
+                Id=1,
+                UserAccount=UserAccount,
+                ProductId=physicalProductId,
+                Amount=20.01M
+            };
+            productCatalogMoq.Setup(pc => pc.GetTags(physicalProductId))
+                             .Returns( new []{ 
+                                 PaymentTags.Commission, PaymentTags.PhysicalProduct
+                                 });
+            productCatalogMoq.Setup(s => s.GetAgentId(physicalProductId))
+                             .Returns(agentId);
+            commissionMoq.Setup(c => c.GenerateCommision(payment, agentId))
+                         .Verifiable();
+
+            paymentHandler.Process(payment);
+
+            Mock.Verify(commissionMoq);
         }
     }
 }

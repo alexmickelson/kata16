@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using console.Enums;
 
 namespace console.Services
 {
     public interface IProductCatalog
     {
-        public IEnumerable<string> GetTags(int productId);
+        public IEnumerable<PaymentTags> GetTags(int productId);
+        public int GetProductId(string productName);
+        public int GetAgentId(int productId);
     }
 }
