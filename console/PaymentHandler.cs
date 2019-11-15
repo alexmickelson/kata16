@@ -26,16 +26,31 @@ namespace console
             this.commisionService = commisionService;
         }
 
-        public void Process(Payment payment)
+        public bool NeedToDelayOrderForPayment(PaymentAccount paymentAccount)
         {
-            var tags = productCatalog.GetTags(payment.ProductId);
+
+            return paymentAccount.Type == PaymentAccountType.NotCreditCard;
+        }
+
+        public void Process(Order order)
+        {
+            var tags = productCatalog.GetTags(order.ProductId);
             var packingSlip = packingSlipBuilder();
-            newMembership(payment, tags);
-            upgradeMembership(payment, tags);
+            newMembership(order.Payment, tags);
+            upgradeMembership(order.Payment, tags);
+            sendMembershipChangeNotification(order.Payment, tags);
             addFirstAidVideo(tags, packingSlip);
             sendSlipToWarehouse(tags, packingSlip);
             sendSlipToRoyalty(tags, packingSlip);
-            generateCommision(payment, tags);
+            generateCommision(order, tags);
+        }
+
+        private void sendMembershipChangeNotification(Payment payment, IEnumerable<PaymentTags> tags)
+        {
+            if(tags.Contains(PaymentTags.MembershipUpgrade) || tags.Contains(PaymentTags.NewMembership))
+            {
+                membershipService.NotifyUserOfMembershipModification(payment);
+            }
         }
 
         private void sendSlipToRoyalty(IEnumerable<PaymentTags> tags, IPackingSlipBuilder packingSlip)
@@ -78,13 +93,13 @@ namespace console
             }
         }
 
-        private void generateCommision(Payment payment, IEnumerable<PaymentTags> tags)
+        private void generateCommision(Order order, IEnumerable<PaymentTags> tags)
         {
             if (tags.Any(t => t == PaymentTags.Book || t == PaymentTags.PhysicalProduct))
             {
                 commisionService.GenerateCommision(
-                    payment,
-                    productCatalog.GetAgentId(payment.ProductId));
+                    order.Payment,
+                    productCatalog.GetAgentId(order.ProductId));
             }
         }
     }

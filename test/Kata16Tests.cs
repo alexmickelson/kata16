@@ -15,7 +15,7 @@ namespace test
         private Mock<IMembershipService> membershipMoq;
         private Mock<ICommisionService> commissionMoq;
         private PaymentHandler paymentHandler;
-        private string UserAccount;
+        private PaymentAccount defaultPaymentAccout;
 
         [SetUp]
         public void Setup()
@@ -30,7 +30,10 @@ namespace test
                                 productCatalogMoq.Object,
                                 membershipMoq.Object,
                                 commissionMoq.Object);
-            UserAccount = "me";
+            defaultPaymentAccout = new PaymentAccount()
+            {
+
+            };
         }
 
         [Test]
@@ -38,15 +41,19 @@ namespace test
         {
             var physicalProductId = 4;
             var payment = new Payment(){
-                UserAccount=UserAccount,
-                ProductId=physicalProductId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=physicalProductId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(physicalProductId))
                              .Returns(new List<PaymentTags>(){PaymentTags.PhysicalProduct});
             packingSlipBuilderMoq.Setup(m => m.SendPackingSlipTo(Departments.Warehouse)).Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(packingSlipBuilderMoq);
         }
@@ -57,9 +64,13 @@ namespace test
             var bookProductId = 3;
             var payment = new Payment()
             {
-                UserAccount=UserAccount,
-                ProductId=bookProductId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=bookProductId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(bookProductId))
                              .Returns(new List<PaymentTags>()
@@ -70,7 +81,7 @@ namespace test
             packingSlipBuilderMoq.Setup(m => m.SendPackingSlipTo(Departments.Warehouse)).Verifiable();
             packingSlipBuilderMoq.Setup(m => m.SendPackingSlipTo(Departments.Royalty)).Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(packingSlipBuilderMoq);
         }
@@ -81,9 +92,13 @@ namespace test
             var membershipProductId = 3;
             var payment = new Payment()
             {
-                UserAccount=UserAccount,
-                ProductId=membershipProductId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=membershipProductId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(membershipProductId))
                              .Returns(new List<PaymentTags>()
@@ -93,7 +108,7 @@ namespace test
             membershipMoq.Setup(ms => ms.ActivateMembership(payment))
                                 .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(membershipMoq);
         }
@@ -104,9 +119,13 @@ namespace test
             var membershipUpgradeProductId = 4;
             var payment = new Payment()
             {
-                UserAccount=UserAccount,
-                ProductId=membershipUpgradeProductId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=membershipUpgradeProductId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(membershipUpgradeProductId))
                              .Returns(new List<PaymentTags>()
@@ -116,7 +135,7 @@ namespace test
             membershipMoq.Setup(ms => ms.UpgradeMembership(payment))
                                 .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(membershipMoq);
         }
@@ -128,16 +147,20 @@ namespace test
             var payment = new Payment()
             {
                 Id=1,
-                UserAccount=UserAccount,
-                ProductId=MemberhipPurchaseId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=MemberhipPurchaseId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(MemberhipPurchaseId))
                              .Returns(new [] { PaymentTags.NewMembership });
             membershipMoq.Setup(m => m.NotifyUserOfMembershipModification(payment))
                          .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(membershipMoq);
         }
@@ -149,16 +172,20 @@ namespace test
             var payment = new Payment()
             {
                 Id=1,
-                UserAccount=UserAccount,
-                ProductId=MemberhipUpgradeId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=MemberhipUpgradeId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(MemberhipUpgradeId))
                              .Returns(new [] { PaymentTags.MembershipUpgrade });
             membershipMoq.Setup(m => m.NotifyUserOfMembershipModification(payment))
                          .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(membershipMoq);
         }
@@ -171,9 +198,13 @@ namespace test
             var payment = new Payment()
             {
                 Id=1,
-                UserAccount=UserAccount,
-                ProductId=learingToSkiVideo,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=learingToSkiVideo,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(learingToSkiVideo))
                              .Returns(new [] { PaymentTags.AddFirstAidVideo });
@@ -183,7 +214,7 @@ namespace test
                 .Setup(m => m.AddItemToOrder(firstAidVideoId))
                 .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(packingSlipBuilderMoq);
         }
@@ -196,9 +227,13 @@ namespace test
             var payment = new Payment()
             {
                 Id=1,
-                UserAccount=UserAccount,
-                ProductId=bookProductId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=bookProductId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(bookProductId))
                              .Returns( new []{ 
@@ -209,7 +244,7 @@ namespace test
             commissionMoq.Setup(c => c.GenerateCommision(payment, agentId))
                          .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(commissionMoq);
         }
@@ -222,9 +257,13 @@ namespace test
             var payment = new Payment()
             {
                 Id=1,
-                UserAccount=UserAccount,
-                ProductId=physicalProductId,
+                PaymentAccount = defaultPaymentAccout,
                 Amount=20.01M
+            };
+            var order = new Order(){
+                OrderId = 100,
+                ProductId=physicalProductId,
+                Payment=payment
             };
             productCatalogMoq.Setup(pc => pc.GetTags(physicalProductId))
                              .Returns( new []{ 
@@ -235,7 +274,7 @@ namespace test
             commissionMoq.Setup(c => c.GenerateCommision(payment, agentId))
                          .Verifiable();
 
-            paymentHandler.Process(payment);
+            paymentHandler.Process(order);
 
             Mock.Verify(commissionMoq);
         }

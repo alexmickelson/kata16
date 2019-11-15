@@ -5,6 +5,8 @@ namespace console.Enums
         Placed,
         WaitingForPayment,
         WaitingToBeInStock,
-        Completed
+        WaitingForInvoicePayment,
+        Completed,
+        Canceled
     }
 }
